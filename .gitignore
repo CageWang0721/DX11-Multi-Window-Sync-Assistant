@@ -23,6 +23,10 @@ cmake_install.cmake
 *.ninja*
 VSInheritEnvironments.txt
 
+# Local-only tests and agent plans
+tests/
+docs/superpowers/plans/
+
 # Qt (v2.0 legacy)
 cmake-build-qt6/
 CMakePresets.json

@@ -74,6 +74,8 @@ private:
     D2D1_RECT_F StatusBarRect() const;
     D2D1_RECT_F StartBtnRect() const;
     D2D1_RECT_F StopBtnRect() const;
+    D2D1_RECT_F KeyboardToggleBtnRect() const;
+    D2D1_RECT_F MouseToggleBtnRect() const;
     D2D1_RECT_F RefreshBtnRect() const;
     D2D1_RECT_F BlacklistBtnRect() const;
 
@@ -146,7 +148,7 @@ private:
         FilterTitle, FilterProcess, FilterRefresh,
         ParentList, ChildList,
         ParentScrollTrack, ChildScrollTrack,
-        StartBtn, StopBtn, BlacklistBtn,
+        StartBtn, StopBtn, KeyboardToggleBtn, MouseToggleBtn, BlacklistBtn,
     };
     HitZone m_hoverZone  = HitZone::None;
     HitZone m_activeZone = HitZone::None; // 鼠标按下时的区域
@@ -156,6 +158,8 @@ private:
 
     bool m_hoverStart = false;
     bool m_hoverStop  = false;
+    bool m_hoverKeyboardToggle = false;
+    bool m_hoverMouseToggle = false;
     bool m_hoverBlacklist = false;
 
     // ═══════════════════════════════════════════════════════

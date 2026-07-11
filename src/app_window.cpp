@@ -116,7 +116,7 @@ bool AppWindow::Create(int nCmdShow) {
 
     m_hWnd = CreateWindowExW(
         0, L"DX11SyncWindow",
-        L"DX11 多窗口同步器 v3.1",
+        L"DX11 多窗口同步器 v3.2",
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT, CW_USEDEFAULT, windowW, windowH,
         nullptr, nullptr, m_hInst, this);
@@ -236,6 +236,9 @@ LRESULT AppWindow::HandleMessage(UINT msg, WPARAM wp, LPARAM lp) {
         m_hoverIdx   = -1;
         m_hoverStart = false;
         m_hoverStop  = false;
+        m_hoverKeyboardToggle = false;
+        m_hoverMouseToggle = false;
+        m_hoverBlacklist = false;
         InvalidateContent();
         return 0;
 
@@ -362,6 +365,8 @@ void AppWindow::OnMouseMove(int x, int y) {
     int oldIdx = m_hoverIdx;
     bool oldHoverStart = m_hoverStart;
     bool oldHoverStop  = m_hoverStop;
+    bool oldHoverKeyboardToggle = m_hoverKeyboardToggle;
+    bool oldHoverMouseToggle = m_hoverMouseToggle;
     bool oldHoverBlacklist = m_hoverBlacklist;
 
     //  重置
@@ -369,6 +374,8 @@ void AppWindow::OnMouseMove(int x, int y) {
     m_hoverIdx   = -1;
     m_hoverStart = false;
     m_hoverStop  = false;
+    m_hoverKeyboardToggle = false;
+    m_hoverMouseToggle = false;
     m_hoverBlacklist = false;
 
     //  命中检测
@@ -378,6 +385,12 @@ void AppWindow::OnMouseMove(int x, int y) {
     } else if (PtInD2DRect(StopBtnRect(), x, y)) {
         m_hoverZone = HitZone::StopBtn;
         m_hoverStop = true;
+    } else if (PtInD2DRect(KeyboardToggleBtnRect(), x, y)) {
+        m_hoverZone = HitZone::KeyboardToggleBtn;
+        m_hoverKeyboardToggle = true;
+    } else if (PtInD2DRect(MouseToggleBtnRect(), x, y)) {
+        m_hoverZone = HitZone::MouseToggleBtn;
+        m_hoverMouseToggle = true;
     } else if (PtInD2DRect(BlacklistBtnRect(), x, y)) {
         m_hoverZone = HitZone::BlacklistBtn;
         m_hoverBlacklist = true;
@@ -397,6 +410,8 @@ void AppWindow::OnMouseMove(int x, int y) {
     //  仅变化时重绘
     if (m_hoverZone != oldZone || m_hoverIdx != oldIdx ||
         m_hoverStart != oldHoverStart || m_hoverStop != oldHoverStop ||
+        m_hoverKeyboardToggle != oldHoverKeyboardToggle ||
+        m_hoverMouseToggle != oldHoverMouseToggle ||
         m_hoverBlacklist != oldHoverBlacklist) {
         InvalidateContent();
     }
@@ -419,6 +434,18 @@ void AppWindow::OnLButtonDown(int x, int y) {
 
     if (m_activeZone == HitZone::StopBtn) {
         m_engine.Stop();
+        InvalidateContent();
+        return;
+    }
+
+    if (m_activeZone == HitZone::KeyboardToggleBtn) {
+        m_engine.SetKeyboardEnabled(!m_engine.IsKeyboardEnabled());
+        InvalidateContent();
+        return;
+    }
+
+    if (m_activeZone == HitZone::MouseToggleBtn) {
+        m_engine.SetMouseEnabled(!m_engine.IsMouseEnabled());
         InvalidateContent();
         return;
     }
@@ -833,6 +860,16 @@ void AppWindow::DrawActionBar() {
                canStart, m_hoverStart, m_activeZone == HitZone::StartBtn, true);
     DrawButton(m_pRT, StopBtnRect(), L"\u23F9 终止同步",
                canStop, m_hoverStop, m_activeZone == HitZone::StopBtn, false);
+    DrawButton(m_pRT, KeyboardToggleBtnRect(),
+               m_engine.IsKeyboardEnabled() ? L"键盘: 开" : L"键盘: 关",
+               true, m_hoverKeyboardToggle,
+               m_activeZone == HitZone::KeyboardToggleBtn,
+               m_engine.IsKeyboardEnabled());
+    DrawButton(m_pRT, MouseToggleBtnRect(),
+               m_engine.IsMouseEnabled() ? L"鼠标: 开" : L"鼠标: 关",
+               true, m_hoverMouseToggle,
+               m_activeZone == HitZone::MouseToggleBtn,
+               m_engine.IsMouseEnabled());
     DrawButton(m_pRT, BlacklistBtnRect(), L"\U0001F512 热键黑名单",
                true, m_hoverBlacklist, m_activeZone == HitZone::BlacklistBtn, true);
 }
@@ -878,11 +915,12 @@ void AppWindow::DrawStatusBar() {
     D2D1_RECT_F textR = { r.left + 30, r.top + 6, r.right - 10, r.bottom - 6 };
     m_pBrush->SetColor(running ? m_clrStatusText : m_clrTextSecondary);
 
-    const wchar_t* status;
-    if (running)
-        status = L"\U0001F7E2 同步中 | 切到父窗口操作";
-    else
-        status = L"\u23F8 同步已停止 | 就绪";
+    wchar_t status[128] = {};
+    swprintf_s(status, L"%s | 键盘:%s 鼠标:%s%s",
+               running ? L"\U0001F7E2 同步中" : L"\u23F8 同步已停止",
+               m_engine.IsKeyboardEnabled() ? L"开" : L"关",
+               m_engine.IsMouseEnabled() ? L"开" : L"关",
+               running ? L" | 切到父窗口操作" : L" | 就绪");
 
     m_pRT->DrawText(status, static_cast<UINT32>(wcslen(status)),
                   m_pSmallFormat, textR, m_pBrush,
@@ -956,9 +994,23 @@ D2D1_RECT_F AppWindow::StopBtnRect() const {
              static_cast<float>(MARGIN + BTN_W * 2 + GAP), y + BTN_H };
 }
 
-D2D1_RECT_F AppWindow::BlacklistBtnRect() const {
+D2D1_RECT_F AppWindow::KeyboardToggleBtnRect() const {
     float y = ActionBarRect().top + 6;
     float left = MARGIN + BTN_W * 2 + GAP * 2;
+    return { static_cast<float>(left), y,
+             static_cast<float>(left + 112), y + BTN_H };
+}
+
+D2D1_RECT_F AppWindow::MouseToggleBtnRect() const {
+    float y = ActionBarRect().top + 6;
+    float left = MARGIN + BTN_W * 2 + GAP * 3 + 112;
+    return { static_cast<float>(left), y,
+             static_cast<float>(left + 112), y + BTN_H };
+}
+
+D2D1_RECT_F AppWindow::BlacklistBtnRect() const {
+    float y = ActionBarRect().top + 6;
+    float left = MARGIN + BTN_W * 2 + GAP * 4 + 112 * 2;
     return { static_cast<float>(left), y,
              static_cast<float>(left + 150), y + BTN_H };
 }

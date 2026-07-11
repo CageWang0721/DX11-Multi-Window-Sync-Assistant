@@ -1,4 +1,4 @@
-// DX11 多窗口同步器 v3.1
+// DX11 多窗口同步器 v3.2
 //
 // 纯 Win32 API + Direct2D 渲染，零第三方依赖。
 // 编译: build.bat → 产出单个 dx11_sync.exe

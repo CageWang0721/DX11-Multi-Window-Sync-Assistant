@@ -28,6 +28,11 @@ public:
     void Stop();
     bool IsRunning() const { return m_running; }
 
+    void SetKeyboardEnabled(bool enabled);
+    void SetMouseEnabled(bool enabled);
+    bool IsKeyboardEnabled() const { return m_keyboardEnabled; }
+    bool IsMouseEnabled() const { return m_mouseEnabled; }
+
     void SetStatusCallback(StatusCallback cb) { m_statusCallback = std::move(cb); }
 
     void AddBlacklistKey(DWORD vkCode);
@@ -44,7 +49,9 @@ private:
     void InjectMouseWheel(int delta, int screenX, int screenY);
 
     LPARAM ScreenToClientLParam(HWND hWnd, int screenX, int screenY);
-    bool ShouldForward() const;
+    bool ShouldForwardKeyboard() const;
+    bool ShouldForwardMouse(int screenX, int screenY) const;
+    bool PointInParentClient(int screenX, int screenY) const;
     bool IsKeyBlacklisted(DWORD vkCode) const;
 
     static SyncEngine* s_instance;
@@ -55,6 +62,9 @@ private:
 
     HHOOK m_keyboardHook = nullptr;
     HHOOK m_mouseHook = nullptr;
+
+    bool m_keyboardEnabled = true;
+    bool m_mouseEnabled = true;
 
     StatusCallback m_statusCallback;
     std::set<DWORD> m_keyBlacklist;

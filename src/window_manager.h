@@ -38,6 +38,10 @@ public:
     // 获取进程名
     static std::wstring GetProcessName(DWORD processId);
 
+    // 稳定排序窗口列表，避免依赖 EnumWindows 的系统枚举顺序
+    static void SortWindows(std::vector<WindowInfo>& windows);
+    static bool WindowInfoLess(const WindowInfo& a, const WindowInfo& b);
+
 private:
     static BOOL CALLBACK EnumWindowsProc(HWND hWnd, LPARAM lParam);
     std::vector<WindowInfo> m_windows;

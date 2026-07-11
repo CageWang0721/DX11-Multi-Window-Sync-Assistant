@@ -4,7 +4,7 @@ cd /d "%~dp0"
 
 echo.
 echo   ============================================================
-echo     DX11 Multi-Window Sync v3.1 - Build
+echo     DX11 Multi-Window Sync v3.2 - Build
 echo   ============================================================
 echo.
 

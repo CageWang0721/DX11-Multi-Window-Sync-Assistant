@@ -1,9 +1,31 @@
 #include "window_manager.h"
+#include <algorithm>
 #include <cstring>
+#include <cwctype>
+#include <cstdint>
+
+static std::wstring ToLowerCopy(const std::wstring& value) {
+    std::wstring lower(value);
+    std::transform(lower.begin(), lower.end(), lower.begin(),
+                   [](wchar_t ch) { return static_cast<wchar_t>(towlower(ch)); });
+    return lower;
+}
+
+static int CompareTextEmptyLast(const std::wstring& a, const std::wstring& b) {
+    if (a.empty() && !b.empty()) return 1;
+    if (!a.empty() && b.empty()) return -1;
+
+    std::wstring lowerA = ToLowerCopy(a);
+    std::wstring lowerB = ToLowerCopy(b);
+    if (lowerA < lowerB) return -1;
+    if (lowerB < lowerA) return 1;
+    return 0;
+}
 
 std::vector<WindowInfo> WindowManager::EnumerateWindows() {
     m_windows.clear();
     EnumWindows(EnumWindowsProc, reinterpret_cast<LPARAM>(this));
+    SortWindows(m_windows);
     return m_windows;
 }
 
@@ -135,4 +157,21 @@ std::wstring WindowManager::GetProcessName(DWORD processId) {
         CloseHandle(hProcess);
     }
     return result;
+}
+
+void WindowManager::SortWindows(std::vector<WindowInfo>& windows) {
+    std::sort(windows.begin(), windows.end(), WindowInfoLess);
+}
+
+bool WindowManager::WindowInfoLess(const WindowInfo& a, const WindowInfo& b) {
+    int processCmp = CompareTextEmptyLast(a.processName, b.processName);
+    if (processCmp != 0) return processCmp < 0;
+
+    int titleCmp = CompareTextEmptyLast(a.title, b.title);
+    if (titleCmp != 0) return titleCmp < 0;
+
+    if (a.processId != b.processId)
+        return a.processId < b.processId;
+
+    return reinterpret_cast<uintptr_t>(a.hWnd) < reinterpret_cast<uintptr_t>(b.hWnd);
 }

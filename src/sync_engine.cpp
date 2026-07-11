@@ -31,6 +31,18 @@ void SyncEngine::ClearChildren()         { m_children.clear(); }
 void SyncEngine::AddBlacklistKey(DWORD k)   { m_keyBlacklist.insert(k); }
 void SyncEngine::RemoveBlacklistKey(DWORD k) { m_keyBlacklist.erase(k); }
 
+void SyncEngine::SetKeyboardEnabled(bool enabled) {
+    m_keyboardEnabled = enabled;
+    if (m_statusCallback)
+        m_statusCallback(L"");
+}
+
+void SyncEngine::SetMouseEnabled(bool enabled) {
+    m_mouseEnabled = enabled;
+    if (m_statusCallback)
+        m_statusCallback(L"");
+}
+
 // ─── 启动 / 停止 ─────────────────────────────────────────
 
 bool SyncEngine::Start() {
@@ -81,7 +93,7 @@ LRESULT CALLBACK SyncEngine::LowLevelKeyboardProc(int nCode, WPARAM wParam, LPAR
     auto* pKbd = reinterpret_cast<KBDLLHOOKSTRUCT*>(lParam);
     bool keyDown = (wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN);
 
-    if (pThis->m_running && pThis->ShouldForward()) {
+    if (pThis->m_running && pThis->ShouldForwardKeyboard()) {
         if (!pThis->IsKeyBlacklisted(pKbd->vkCode)) {
             pThis->InjectKeyEvent(pKbd->vkCode, keyDown,
                                   pKbd->scanCode, pKbd->flags);
@@ -103,9 +115,10 @@ LRESULT CALLBACK SyncEngine::LowLevelMouseProc(int nCode, WPARAM wParam, LPARAM 
 
     auto* pMouse = reinterpret_cast<MSLLHOOKSTRUCT*>(lParam);
 
-    if (pThis->m_running && pThis->ShouldForward()) {
-        int sx = pMouse->pt.x;
-        int sy = pMouse->pt.y;
+    int sx = pMouse->pt.x;
+    int sy = pMouse->pt.y;
+
+    if (pThis->m_running && pThis->ShouldForwardMouse(sx, sy)) {
 
         switch (wParam) {
         case WM_MOUSEMOVE:
@@ -240,9 +253,37 @@ LPARAM SyncEngine::ScreenToClientLParam(HWND hWnd, int screenX, int screenY) {
     return MAKELPARAM((WORD)pt.x, (WORD)pt.y);
 }
 
-bool SyncEngine::ShouldForward() const {
+bool SyncEngine::ShouldForwardKeyboard() const {
+    if (!m_keyboardEnabled) return false;
     if (!m_parent || !IsWindow(m_parent)) return false;
     return GetForegroundWindow() == m_parent;
+}
+
+bool SyncEngine::ShouldForwardMouse(int screenX, int screenY) const {
+    if (!m_mouseEnabled) return false;
+    if (!m_parent || !IsWindow(m_parent)) return false;
+    if (GetForegroundWindow() != m_parent) return false;
+    return PointInParentClient(screenX, screenY);
+}
+
+bool SyncEngine::PointInParentClient(int screenX, int screenY) const {
+    if (!m_parent || !IsWindow(m_parent)) return false;
+
+    RECT client = {};
+    if (!GetClientRect(m_parent, &client)) return false;
+
+    POINT origin = { 0, 0 };
+    if (!ClientToScreen(m_parent, &origin)) return false;
+
+    RECT screenClient = {
+        origin.x,
+        origin.y,
+        origin.x + (client.right - client.left),
+        origin.y + (client.bottom - client.top)
+    };
+
+    return screenX >= screenClient.left && screenX < screenClient.right &&
+           screenY >= screenClient.top && screenY < screenClient.bottom;
 }
 
 bool SyncEngine::IsKeyBlacklisted(DWORD vkCode) const {

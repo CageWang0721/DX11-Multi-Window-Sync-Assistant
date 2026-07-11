@@ -1,4 +1,6 @@
-# DX11 Multi-Window Sync v3.0
+# DX11 Multi-Window Sync v3.1
+
+> v3.1 标注：修复 Windows 10 环境下 manifest 加载、Direct2D 渲染、按钮定位和构建链接兼容性问题。
 
 **DX11 多窗口同步器** — 将键盘和鼠标操作从一个"主控"窗口同步转发到一个或多个"副控"窗口，实现多开同步操控。
 
@@ -34,14 +36,14 @@
 
 ### 方式一：build.bat（推荐，无需 CMake）
 
-1. 安装 [Visual Studio 2026](https://visualstudio.microsoft.com/)（Community 版即可），勾选 **"使用 C++ 的桌面开发"** 工作负载
+1. 安装 [Visual Studio 2022/2026](https://visualstudio.microsoft.com/) 或 Build Tools，勾选 **"使用 C++ 的桌面开发"** 工作负载
 2. 双击 `build.bat` 或在命令行中运行
 
 ```bat
 build.bat
 ```
 
-生成 `dx11_sync.exe`（以及配套的 `dx11_sync.exe.manifest`）。
+生成 `dx11_sync.exe`（清单已嵌入 EXE）。
 
 ### 方式二：CMake
 
@@ -56,8 +58,7 @@ cmake --build out/build/x64-Debug
 
 | 文件 | 说明 |
 |------|------|
-| `dx11_sync.exe` | 主程序（x64，静态链接） |
-| `dx11_sync.exe.manifest` | 外部清单（管理员权限 + DPI 声明，必须与 EXE 放在同一目录） |
+| `dx11_sync.exe` | 主程序（x64，静态链接，已嵌入管理员权限 + DPI 清单） |
 
 ---
 
@@ -97,7 +98,7 @@ cmake --build out/build/x64-Debug
 | 层次 | 技术选型 |
 |------|---------|
 | **语言** | C++17 |
-| **编译器** | MSVC (Visual Studio 2026) |
+| **编译器** | MSVC (Visual Studio 2022/2026 / Build Tools) |
 | **构建** | CMake 3.20+ / build.bat |
 | **UI 渲染** | Direct2D + DirectWrite（自绘窗口） |
 | **窗口管理** | 原生 Win32 API |
@@ -111,7 +112,7 @@ cmake --build out/build/x64-Debug
 dx11_sync/
 ├── CMakeLists.txt          # CMake 构建定义
 ├── build.bat               # 一键构建脚本
-├── app.manifest            # 外部清单（管理员权限、DPI、Win10/11 兼容）
+├── app.manifest            # 嵌入式清单来源（管理员权限、DPI、Win10/11 兼容）
 ├── resource.rc / .h        # Windows 资源文件（图标等）
 ├── dx11_sync.ico           # 应用图标
 │
@@ -151,5 +152,5 @@ A: 部分游戏使用 DirectInput 或 Raw Input 直接读取硬件，绕过了 W
 **Q: 如何关闭"以管理员身份运行"提示？**
 A: 这是 UAC 行为，无法通过应用程序绕过。可在系统 UAC 设置中降低级别（不推荐）。
 
-**Q: 为什么 EXE 旁边还有一个 .manifest 文件？**
-A: 清单需要声明管理员权限和 DPI 感知。`/MANIFEST:NO` 禁用了链接器自动嵌入的默认清单，改用此外部文件以实现完整功能。
+**Q: 为什么需要清单？**
+A: 清单用于声明管理员权限、DPI 感知和 Win10/Win11 兼容性。现在清单已通过资源文件嵌入 EXE，不需要再把 `.manifest` 文件放在 EXE 旁边。

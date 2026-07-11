@@ -111,7 +111,7 @@ bool AppWindow::Create(int nCmdShow) {
     // ── 创建窗口 ──────────────────────────────────────
     m_hWnd = CreateWindowExW(
         0, L"DX11SyncWindow",
-        L"DX11 多窗口同步器 v3.0",
+        L"DX11 多窗口同步器 v3.1",
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
         CW_USEDEFAULT, CW_USEDEFAULT, m_width, m_height,
         nullptr, nullptr, m_hInst, this);
@@ -546,8 +546,8 @@ bool AppWindow::CreateDeviceResources() {
     D2D1_RENDER_TARGET_PROPERTIES props =
         D2D1::RenderTargetProperties(
             D2D1_RENDER_TARGET_TYPE_DEFAULT,
-            D2D1::PixelFormat(DXGI_FORMAT_B8G8R8A8_UNORM,
-                              D2D1_ALPHA_MODE_PREMULTIPLIED));
+            D2D1::PixelFormat(DXGI_FORMAT_UNKNOWN,
+                              D2D1_ALPHA_MODE_UNKNOWN));
 
     D2D1_HWND_RENDER_TARGET_PROPERTIES hwndProps =
         D2D1::HwndRenderTargetProperties(m_hWnd,
@@ -585,6 +585,9 @@ void AppWindow::Render() {
     m_pRT->BeginDraw();
     m_pRT->SetTransform(D2D1::Matrix3x2F::Identity());
 
+    m_pRT->Clear(m_darkMode ? D2D1::ColorF(0.08f, 0.08f, 0.10f)
+                            : D2D1::ColorF(0.96f, 0.96f, 0.98f));
+
     //  全窗口 Mica 覆层（半透明 Acrylic 效果）
     D2D1_RECT_F full = { 0, 0, static_cast<float>(m_width), static_cast<float>(m_height) };
     m_pBrush->SetColor(m_clrMicaOverlay);
@@ -595,7 +598,10 @@ void AppWindow::Render() {
     DrawActionBar();
     DrawStatusBar();
 
-    m_pRT->EndDraw();
+    HRESULT hr = m_pRT->EndDraw();
+    if (hr == D2DERR_RECREATE_TARGET) {
+        DiscardDeviceResources();
+    }
 }
 
 // ═══════════════════════════════════════════════════════════

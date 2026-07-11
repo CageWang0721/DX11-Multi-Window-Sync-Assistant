@@ -288,12 +288,12 @@ static LRESULT CALLBACK DlgWndProc(HWND hWnd, UINT msg, WPARAM wp, LPARAM lp) {
             hInst, nullptr);
         CreateWindowExW(0, L"BUTTON", L"确定",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            kDlgW - kMargin - 176, btnY, 80, 30,
+            rc.right - kMargin - 176, btnY, 80, 30,
             hWnd, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kBtnOK)),
             hInst, nullptr);
         CreateWindowExW(0, L"BUTTON", L"取消",
             WS_CHILD | WS_VISIBLE | BS_PUSHBUTTON,
-            kDlgW - kMargin - 86, btnY, 80, 30,
+            rc.right - kMargin - 86, btnY, 80, 30,
             hWnd, reinterpret_cast<HMENU>(static_cast<INT_PTR>(kBtnCancel)),
             hInst, nullptr);
 

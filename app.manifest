@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
 <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
-  <assemblyIdentity version="3.0.0.0" processorArchitecture="amd64" name="dx11_sync" type="win32"/>
-  <description>DX11 Game Multi-Window Synchronizer v3.0</description>
+  <assemblyIdentity version="3.1.0.0" processorArchitecture="amd64" name="dx11_sync" type="win32"/>
+  <description>DX11 Game Multi-Window Synchronizer v3.1</description>
 
   <!-- Common Controls v6 (现代控件样式) -->
   <dependency>

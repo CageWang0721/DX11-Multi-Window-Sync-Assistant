@@ -35,3 +35,6 @@ Desktop.ini
 
 # Binary resource cache
 *.aps
+
+# Local image exports
+*.png

@@ -109,11 +109,16 @@ bool AppWindow::Create(int nCmdShow) {
     RegisterClassExW(&wc);
 
     // ── 创建窗口 ──────────────────────────────────────
+    RECT windowR = { 0, 0, m_width, m_height };
+    AdjustWindowRectEx(&windowR, WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN, FALSE, 0);
+    int windowW = windowR.right - windowR.left;
+    int windowH = windowR.bottom - windowR.top;
+
     m_hWnd = CreateWindowExW(
         0, L"DX11SyncWindow",
         L"DX11 多窗口同步器 v3.1",
         WS_OVERLAPPEDWINDOW | WS_CLIPCHILDREN,
-        CW_USEDEFAULT, CW_USEDEFAULT, m_width, m_height,
+        CW_USEDEFAULT, CW_USEDEFAULT, windowW, windowH,
         nullptr, nullptr, m_hInst, this);
 
     if (!m_hWnd) return false;
@@ -558,6 +563,9 @@ bool AppWindow::CreateDeviceResources() {
         props, hwndProps, &m_pRT);
 
     if (SUCCEEDED(hr) && m_pRT) {
+        // Win10 高 DPI 下 HwndRenderTarget 默认使用系统 DPI，D2D 坐标会被放大。
+        // 这里的布局坐标来自 WM_SIZE/原生控件像素坐标，固定 96 DPI 保持两者一致。
+        m_pRT->SetDpi(96.0f, 96.0f);
         CreateBrushes();
     }
 
@@ -901,7 +909,8 @@ D2D1_RECT_F AppWindow::FilterBgRect() const {
 D2D1_RECT_F AppWindow::ParentListRect() const {
     float y = static_cast<float>(FILTER_H + GAP + LIST_HEAD_H);
     float halfW = (m_width - MARGIN * 2 - GAP) / 2.0f;
-    float bottom = static_cast<float>(m_height) - MARGIN - INFO_H - GAP * 2 - ACTION_H - STATUS_H - GAP;
+    float bottom = static_cast<float>(m_height) - MARGIN - STATUS_H - GAP - ACTION_H - GAP - INFO_H - GAP;
+    if (bottom < y + LIST_ITEM_H + LIST_PAD * 2) bottom = y + LIST_ITEM_H + LIST_PAD * 2;
     return { static_cast<float>(MARGIN), y,
              static_cast<float>(MARGIN) + halfW, bottom };
 }
@@ -909,7 +918,8 @@ D2D1_RECT_F AppWindow::ParentListRect() const {
 D2D1_RECT_F AppWindow::ChildListRect() const {
     float y = static_cast<float>(FILTER_H + GAP + LIST_HEAD_H);
     float halfW = (m_width - MARGIN * 2 - GAP) / 2.0f;
-    float bottom = static_cast<float>(m_height) - MARGIN - INFO_H - GAP * 2 - ACTION_H - STATUS_H - GAP;
+    float bottom = static_cast<float>(m_height) - MARGIN - STATUS_H - GAP - ACTION_H - GAP - INFO_H - GAP;
+    if (bottom < y + LIST_ITEM_H + LIST_PAD * 2) bottom = y + LIST_ITEM_H + LIST_PAD * 2;
     return { static_cast<float>(MARGIN) + halfW + GAP, y,
              static_cast<float>(m_width - MARGIN), bottom };
 }
@@ -929,7 +939,7 @@ D2D1_RECT_F AppWindow::ChildInfoRect() const {
 }
 
 D2D1_RECT_F AppWindow::ActionBarRect() const {
-    float y = ParentInfoRect().bottom + GAP;
+    float y = static_cast<float>(m_height) - MARGIN - STATUS_H - GAP - ACTION_H;
     return { static_cast<float>(MARGIN), y,
              static_cast<float>(m_width - MARGIN), y + ACTION_H };
 }
@@ -954,10 +964,10 @@ D2D1_RECT_F AppWindow::BlacklistBtnRect() const {
 }
 
 D2D1_RECT_F AppWindow::StatusBarRect() const {
-    float y = ActionBarRect().bottom + GAP;
+    float y = static_cast<float>(m_height) - MARGIN - STATUS_H;
     return { static_cast<float>(MARGIN), y,
              static_cast<float>(m_width - MARGIN),
-             static_cast<float>(m_height) - GAP };
+             y + STATUS_H };
 }
 
 // ═══════════════════════════════════════════════════════════
